@@ -1,4 +1,5 @@
 from collections import Counter
+from itertools import combinations
 
 
 class Interval:
@@ -18,9 +19,10 @@ class Interval:
 class SupervisedBottomUpDiscretizer:
     def __init__(self, max_bins=5):
         self.max_bins = max_bins
+        self.intervals = []
 
     def _separation_score(self, intervals):
-        """Zlicza liczbę dobrze odseparowanych punktów (na granicy przedziałów, różne klasy)."""
+        """Zlicza liczbę granic między przedziałami, gdzie zmienia się klasa."""
         separated = 0
         for i in range(len(intervals) - 1):
             right_class = intervals[i].values_classes[-1][1]
@@ -72,3 +74,14 @@ class SupervisedBottomUpDiscretizer:
 
     def get_bins(self):
         return [(iv.start, iv.end) for iv in self.intervals]
+
+    def count_separated_pairs(self, values, labels):
+        """Zlicza liczbę par obiektów skutecznie odseparowanych przez cięcia."""
+        bins = self.transform(values)
+        separated = 0
+        n = len(values)
+        for i in range(n):
+            for j in range(i + 1, n):
+                if labels[i] != labels[j] and bins[i] != bins[j]:
+                    separated += 1
+        return separated
