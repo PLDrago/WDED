@@ -1,100 +1,117 @@
-import csv
+import pandas as pd
+import numpy as np
 from itertools import combinations
-from collections import defaultdict
+import csv
 
-class GreedyDiscretizerFromIntervals:
+class BottomUpGreedyDiscretizer:
     def __init__(self):
-        self.selected_cuts = set()
-        self.all_possible_cuts = set()
-        self.cut_axis_map = defaultdict(set)  # np. {(0, '(1.8; 1.95]')}
-        self.data = []
-        self.labels = []
+        self.cuts = {0: [], 1: []}  # cięcia dla x1 i x2
+        self.selected_cuts = {0: [], 1: []}
 
-    def parse_csv(self, filepath):
-        with open(filepath, 'r') as f:
-            reader = csv.reader(f, delimiter='\t')
-            for row in reader:
-                if len(row) != 3:
-                    continue
-                attr1, attr2, label = row
-                self.data.append([attr1.strip(), attr2.strip()])
-                self.labels.append(label.strip())
-                self.all_possible_cuts.add((0, attr1.strip()))
-                self.all_possible_cuts.add((1, attr2.strip()))
-                self.cut_axis_map[0].add(attr1.strip())
-                self.cut_axis_map[1].add(attr2.strip())
+    def read_data(self, filepath):
+        df = pd.read_csv(filepath, sep='\t')
+        self.X = df.iloc[:, :2].values
+        self.y = df.iloc[:, 2].values
+        return df
 
-    def current_partition(self, active_cuts):
-        """
-        Zwraca etykietę przedziału dla każdego obiektu jako krotkę (dla każdego atrybutu).
-        """
-        partitions = []
-        for obj in self.data:
+    def generate_all_possible_cuts(self):
+        for attr in [0, 1]:  # dla x1 i x2
+            vals_labels = sorted(zip(self.X[:, attr], self.y))
+            cuts = set()
+            for i in range(len(vals_labels) - 1):
+                v1, y1 = vals_labels[i]
+                v2, y2 = vals_labels[i + 1]
+                if y1 != y2 and v1 != v2:
+                    cut = (v1 + v2) / 2
+                    cuts.add(cut)
+            self.cuts[attr] = sorted(cuts)
+
+    def get_partition_keys(self, X, selected_cuts):
+        """Zwraca listę kluczy-partition (jeden na obiekt), czyli przedziałów dla każdego atrybutu."""
+        result = []
+        for row in X:
             key = []
-            for attr_index in [0, 1]:
-                val = obj[attr_index]
-                key.append(val if (attr_index, val) in active_cuts else 'ALL')
-            partitions.append(tuple(key))
-        return partitions
+            for attr in [0, 1]:
+                cuts = selected_cuts[attr]
+                val = row[attr]
+                for i, cut in enumerate(cuts):
+                    if val <= cut:
+                        key.append(i)
+                        break
+                else:
+                    key.append(len(cuts))
+            result.append(tuple(key))
+        return result
 
-    def count_separated_pairs(self, partitions, labels):
-        """
-        Liczy liczbę par obiektów, które są w różnych przedziałach i mają różne etykiety.
-        """
-        separated = 0
-        for (i, j) in combinations(range(len(partitions)), 2):
-            if partitions[i] != partitions[j] and labels[i] != labels[j]:
-                separated += 1
-        return separated
+    def count_separated_pairs(self, keys):
+        count = 0
+        for i, j in combinations(range(len(keys)), 2):
+            if keys[i] != keys[j] and self.y[i] != self.y[j]:
+                count += 1
+        return count
 
     def fit(self):
-        current_cuts = set()
-        partitions = self.current_partition(current_cuts)
-        max_separated = self.count_separated_pairs(partitions, self.labels)
+        self.generate_all_possible_cuts()
+        current_cuts = {0: [], 1: []}
+        current_keys = self.get_partition_keys(self.X, current_cuts)
+        current_score = self.count_separated_pairs(current_keys)
+
+        all_candidates = [(attr, cut) for attr in [0, 1] for cut in self.cuts[attr]]
+        used = set()
 
         while True:
-            best_cut = None
             best_gain = 0
+            best_candidate = None
 
-            for cut in self.all_possible_cuts - current_cuts:
-                temp_cuts = current_cuts | {cut}
-                partitions = self.current_partition(temp_cuts)
-                separated = self.count_separated_pairs(partitions, self.labels)
-                gain = separated - max_separated
-
+            for attr, cut in all_candidates:
+                if (attr, cut) in used:
+                    continue
+                temp_cuts = current_cuts.copy()
+                temp_cuts[attr] = sorted(current_cuts[attr] + [cut])
+                keys = self.get_partition_keys(self.X, temp_cuts)
+                score = self.count_separated_pairs(keys)
+                gain = score - current_score
                 if gain > best_gain:
                     best_gain = gain
-                    best_cut = cut
+                    best_candidate = (attr, cut)
 
-            if best_cut is None:
-                break  # brak przyrostu
+            if best_candidate is None:
+                break
 
-            current_cuts.add(best_cut)
-            max_separated += best_gain
-            print(f"Dodano cięcie {best_cut}, suma odseparowanych par: {max_separated}")
+            attr, cut = best_candidate
+            current_cuts[attr].append(cut)
+            current_cuts[attr].sort()
+            current_score += best_gain
+            used.add((attr, cut))
+            print(f"Dodano cięcie: x{attr+1} = {cut:.3f}, suma odseparowanych par: {current_score}")
 
         self.selected_cuts = current_cuts
 
     def transform(self):
-        """
-        Zwraca dane z etykietami przedziałów tylko tam, gdzie zastosowano cięcia.
-        """
-        transformed = []
-        for obj in self.data:
-            new_obj = []
-            for attr_index in [0, 1]:
-                val = obj[attr_index]
-                new_obj.append(val if (attr_index, val) in self.selected_cuts else 'ALL')
-            transformed.append(new_obj)
-        return transformed
+        result = []
+        for row in self.X:
+            new_row = []
+            for attr in [0, 1]:
+                cuts = self.selected_cuts[attr]
+                val = row[attr]
+                for i, cut in enumerate(cuts):
+                    if val <= cut:
+                        interval = f"({cuts[i-1] if i > 0 else '-inf'}; {cut}]"
+                        break
+                else:
+                    interval = f"({cuts[-1] if cuts else '-inf'}; inf)"
+                new_row.append(interval)
+            result.append(new_row)
+        return result
 
-disc = GreedyDiscretizerFromIntervals()
-disc.parse_csv("DISC_DATA.csv")
+    def save_transformed(self, filepath):
+        rows = self.transform()
+        with open(filepath, 'w', newline='') as f:
+            writer = csv.writer(f, delimiter='\t')
+            for row, label in zip(rows, self.y):
+                writer.writerow(row + [label])
+
+disc = BottomUpGreedyDiscretizer()
+disc.read_data("data.csv")
 disc.fit()
-
-print("\nWybrane cięcia:")
-print(disc.selected_cuts)
-
-print("\nZdyskretyzowane dane:")
-for row in disc.transform():
-    print(row)
+disc.save_transformed("DISCdata1.csv")
