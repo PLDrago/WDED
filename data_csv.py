@@ -1,6 +1,6 @@
 from collections import Counter
 from itertools import combinations
-
+import numpy as np
 
 class Interval:
     def __init__(self, values_classes):
@@ -22,7 +22,6 @@ class SupervisedBottomUpDiscretizer:
         self.intervals = []
 
     def _separation_score(self, intervals):
-        """Zlicza liczbę granic między przedziałami, gdzie zmienia się klasa."""
         separated = 0
         for i in range(len(intervals) - 1):
             right_class = intervals[i].values_classes[-1][1]
@@ -47,7 +46,7 @@ class SupervisedBottomUpDiscretizer:
                 )
                 current_sep = self._separation_score(intervals)
                 new_sep = self._separation_score(temp_intervals)
-                loss = current_sep - new_sep  # chcemy minimalizować utratę separowalności
+                loss = current_sep - new_sep
 
                 if loss < best_loss:
                     best_loss = loss
@@ -76,7 +75,6 @@ class SupervisedBottomUpDiscretizer:
         return [(iv.start, iv.end) for iv in self.intervals]
 
     def count_separated_pairs(self, values, labels):
-        """Zlicza liczbę par obiektów skutecznie odseparowanych przez cięcia."""
         bins = self.transform(values)
         separated = 0
         n = len(values)
