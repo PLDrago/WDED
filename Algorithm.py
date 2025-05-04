@@ -11,7 +11,7 @@ class BottomUpGreedyDiscretizer:
         self.selected_cuts = {0: [], 1: []}
 
     def read_data(self, filepath):
-        df = pd.read_csv(filepath)  # domyślny separator to przecinek
+        df = pd.read_csv(filepath)
         self.X = df.iloc[:, :-1].values
         self.y = df.iloc[:, -1].values
         return df

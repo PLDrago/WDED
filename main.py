@@ -1,6 +1,6 @@
 import os
 import time
-from discretizer import BottomUpGreedyDiscretizer
+from Algorithm import BottomUpGreedyDiscretizer
 
 def run_discretization(data_paths):
     for data_path in data_paths:
@@ -18,10 +18,8 @@ def run_discretization(data_paths):
         print(f"✅ Zapisano: {output_path}")
 
 if __name__ == "__main__":
-    # Lista plików wejściowych
     data_files = ['data1.csv', 'data2.csv', 'data3.csv']
 
-    # Uruchomienie z mierzeniem czasu
     start = time.time()
     run_discretization(data_files)
     end = time.time()
