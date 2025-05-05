@@ -1,8 +1,23 @@
+# Projekt Dyskretyzacji Danych
+
+## Opis Projektu
+
+Ten projekt implementuje algorytmy dyskretyzacji danych, które przekształcają wartości ciągłe na wartości dyskretne. Dyskretyzacja jest kluczowym procesem w analizie danych, szczególnie w przygotowaniu danych do klasyfikacji i eksploracji. W projekcie zaimplementowano dwa algorytmy:
+- **Bottom-Up Greedy Discretizer**: Algorytm zachłanny oparty na podejściu od dołu do góry.
+- **Supervised Bottom-Up Discretizer**: Algorytm nadzorowany, który uwzględnia klasy decyzyjne przy budowie przedziałów.
+
+## Struktura Projektu
+
+- `Algorithm.py`: Implementacja klasy `BottomUpGreedyDiscretizer`.
+- `BottomUpDiscretizer.py`: Implementacja klasy `SupervisedBottomUpDiscretizer`.
+- `main.py`: Główny skrypt uruchamiający proces dyskretyzacji na danych wejściowych.
+- Pliki danych (`data1.csv`, `data2.csv`, `data3.csv`): Przykładowe dane wejściowe.
+
 ---
 
 ## Opis Algorytmów i Kluczowych Metod
 
-### ** Bottom-Up Greedy Discretizer (`Algorithm.py`)**
+### **1. Bottom-Up Greedy Discretizer (`Algorithm.py`)**
 
 #### Główne Metody
 - **`read_data(filepath)`**
