@@ -1,15 +1,12 @@
 import pandas as pd
-import numpy as np
 import csv
 from collections import Counter
 from itertools import combinations
-import os
-import time
 
 class BottomUpGreedyDiscretizer:
     def __init__(self):
-        self.cuts = {}            # Wszystkie możliwe cięcia (dla każdego atrybutu)
-        self.selected_cuts = {}   # Wybrane cięcia po dyskretyzacji (dla każdego atrybutu)
+        self.cuts = {}
+        self.selected_cuts = {}
 
     def read_data(self, filepath):
         """Wczytuje dane z pliku CSV"""
