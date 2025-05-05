@@ -1,22 +1,8 @@
-# Projekt Dyskretyzacji Danych
-
-## Opis Projektu
-
-Ten projekt implementuje algorytmy dyskretyzacji danych, które przekształcają wartości ciągłe na wartości dyskretne. Dyskretyzacja jest kluczowym procesem w analizie danych, szczególnie w przygotowaniu danych do klasyfikacji i eksploracji. W projekcie zaimplementowano dwa algorytmy:
-- **Bottom-Up Greedy Discretizer**: Algorytm zachłanny oparty na podejściu od dołu do góry.
-- **Supervised Bottom-Up Discretizer**: Algorytm nadzorowany, który uwzględnia klasy decyzyjne przy budowie przedziałów.
-
-## Struktura Projektu
-
-- `Algorithm.py`: Implementacja klasy `BottomUpGreedyDiscretizer`.
-- `main.py`: Główny skrypt uruchamiający proces dyskretyzacji na danych wejściowych.
-- Pliki danych (`data1.csv`, `data2.csv`, `data3.csv`): Przykładowe dane wejściowe.
-
 ---
 
 ## Opis Algorytmów i Kluczowych Metod
 
-### **1. Bottom-Up Greedy Discretizer (`Algorithm.py`)**
+### ** Bottom-Up Greedy Discretizer (`Algorithm.py`)**
 
 #### Główne Metody
 - **`read_data(filepath)`**
@@ -49,6 +35,36 @@ Fragment pochodzi z pliku `main.py`, linia 10.
 model.save_transformed(output_path)
 ```
 Fragment pochodzi z pliku `main.py`, linia 17.
+
+---
+
+### ** Analiza Wyników Dyskretyzacji**
+
+#### Pary Niedeterministyczne
+Po przekształceniu danych można przeanalizować ich jakość, sprawdzając liczbę par niedeterministycznych (par przykładów z różnymi etykietami, które znajdują się w tych samych przedziałach).
+
+**Kod analizy:**
+```python
+intervals = df_disc.iloc[:, :-1].values.tolist()
+labels = df_disc.iloc[:, -1].values
+count = 0
+for i in range(len(labels)):
+    for j in range(i + 1, len(labels)):
+        if labels[i] != labels[j] and intervals[i] == intervals[j]:
+            count += 1
+print(f"Pary niedeterministyczne: {count}")
+```
+
+#### Liczba Cięć
+Dodatkowo można obliczyć liczbę cięć dla każdego atrybutu, aby ocenić złożoność dyskretyzacji.
+
+**Kod analizy:**
+```python
+num_cuts = 0
+for j in range(df_disc.shape[1] - 1):
+    num_cuts += len(set(df_disc.iloc[:, j])) - 1
+print(f"Liczba cięć: {num_cuts}")
+```
 
 ---
 
@@ -96,3 +112,12 @@ x1_bin,x2_bin,Decyzja
 
 - Projekt zakłada, że dane wejściowe są w formacie CSV, gdzie kolumny `x1`, `x2` reprezentują atrybuty, a kolumna `Decyzja` to etykiety klas.
 - Dyskretyzacja odbywa się niezależnie dla każdego pliku danych.
+
+---
+
+## Autorzy
+
+- Krzysztof Majka
+- Norbert Zdziarski
+- Jakub Rembisz
+- Marcin Wąsacz
