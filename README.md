@@ -9,7 +9,6 @@ Ten projekt implementuje algorytmy dyskretyzacji danych, które przekształcają
 ## Struktura Projektu
 
 - `Algorithm.py`: Implementacja klasy `BottomUpGreedyDiscretizer`.
-- `BottomUpDiscretizer.py`: Implementacja klasy `SupervisedBottomUpDiscretizer`.
 - `main.py`: Główny skrypt uruchamiający proces dyskretyzacji na danych wejściowych.
 - Pliki danych (`data1.csv`, `data2.csv`, `data3.csv`): Przykładowe dane wejściowe.
 
@@ -50,31 +49,6 @@ Fragment pochodzi z pliku `main.py`, linia 10.
 model.save_transformed(output_path)
 ```
 Fragment pochodzi z pliku `main.py`, linia 17.
-
----
-
-### **2. Supervised Bottom-Up Discretizer (`BottomUpDiscretizer.py`)**
-
-#### Główne Metody
-- **`fit(values, labels)`**
-  - Tworzy początkowe przedziały dla każdej wartości ciągłej.
-  - Iteracyjnie łączy sąsiednie przedziały, jeśli ich połączenie minimalizuje stratę separacji klas.
-
-**Przykład wykorzystania w kodzie:**
-```python
-model = SupervisedBottomUpDiscretizer(max_bins=5)
-model.fit(values, labels)
-```
-Fragment pochodzi z pliku `BottomUpDiscretizer.py`, linia 33.
-
-- **`transform(values)`**
-  - Przekształca dane wejściowe na wartości dyskretne, przypisując każdą wartość do odpowiedniego przedziału.
-
-**Przykład wykorzystania w kodzie:**
-```python
-bins = model.transform(values)
-```
-Fragment pochodzi z pliku `BottomUpDiscretizer.py`, linia 61.
 
 ---
 
