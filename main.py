@@ -17,7 +17,7 @@ def run_discretization(data_paths):
         model.save_transformed(output_path)
         print(f"✅ Zapisano: {output_path}")
 
-        model.test_against_original(output_path, data_path)
+        model.test(output_path, data_path)
 
 if __name__ == "__main__":
     data_files = ['data1.csv', 'data2.csv', 'data3.csv']

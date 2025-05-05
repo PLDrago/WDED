@@ -129,14 +129,14 @@ class BottomUpGreedyDiscretizer:
         """Zapisuje dane z przedziałami do pliku"""
         rows = self.transform()
         with open(filepath, 'w', newline='') as f:
-            writer = csv.writer(f, delimiter='\t')
+            writer = csv.writer(f)
             for row, label in zip(rows, self.y):
                 writer.writerow(row + [label])
 
-    def test_against_original(self, disc_path, orig_path):
-        """Moduł testujący zgodność pliku wynikowego z oryginałem"""
+    def test(self, disc_path, orig_path):
+        """Moduł testujący"""
 
-        df_disc = pd.read_csv(disc_path, sep='\t', header=None)
+        df_disc = pd.read_csv(disc_path, sep=',', header=None)
         df_orig = pd.read_csv(orig_path)
 
         assert df_disc.shape[0] == df_orig.shape[0], "Liczba wierszy niezgodna"
