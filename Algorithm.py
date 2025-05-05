@@ -8,8 +8,8 @@ import time
 
 class BottomUpGreedyDiscretizer:
     def __init__(self):
-        self.cuts = {0: [], 1: []}         # Wszystkie możliwe cięcia
-        self.selected_cuts = {0: [], 1: []}  # Wybrane cięcia (po zachłannym wyborze)
+        self.cuts = {}            # Wszystkie możliwe cięcia (dla każdego atrybutu)
+        self.selected_cuts = {}   # Wybrane cięcia po dyskretyzacji (dla każdego atrybutu)
 
     def read_data(self, filepath):
         """Wczytuje dane z pliku CSV"""
@@ -21,6 +21,7 @@ class BottomUpGreedyDiscretizer:
     def generate_all_possible_cuts(self):
         """Generuje możliwe cięcia między punktami o różnych klasach"""
         for attr in range(self.X.shape[1]):
+            self.cuts[attr] = []
             vals_labels = sorted(zip(self.X[:, attr], self.y))
             cuts = set()
             for i in range(len(vals_labels) - 1):
@@ -59,11 +60,11 @@ class BottomUpGreedyDiscretizer:
     def fit(self):
         """Główna funkcja: wybór najlepszych cięć metodą zachłanną"""
         self.generate_all_possible_cuts()
-        current_cuts = {0: [], 1: []}
+        current_cuts = {i: [] for i in range(self.X.shape[1])}
         current_keys = self.get_partition_keys(self.X, current_cuts)
         current_score = self.count_separated_pairs(current_keys)
 
-        all_candidates = [(attr, cut) for attr in [0, 1] for cut in self.cuts[attr]]
+        all_candidates = [(attr, cut) for attr in range(self.X.shape[1]) for cut in self.cuts[attr]]
         used = set()
 
         while True:
@@ -73,8 +74,9 @@ class BottomUpGreedyDiscretizer:
             for attr, cut in all_candidates:
                 if (attr, cut) in used:
                     continue
-                temp_cuts = current_cuts.copy()
-                temp_cuts[attr] = sorted(current_cuts[attr] + [cut])
+                temp_cuts = {k: list(v) for k, v in current_cuts.items()}
+                temp_cuts[attr].append(cut)
+                temp_cuts[attr].sort()
                 keys = self.get_partition_keys(self.X, temp_cuts)
                 score = self.count_separated_pairs(keys)
                 gain = score - current_score
@@ -129,29 +131,34 @@ class BottomUpGreedyDiscretizer:
         """Zapisuje dane z przedziałami do pliku"""
         rows = self.transform()
         with open(filepath, 'w', newline='') as f:
-            writer = csv.writer(f)
+            writer = csv.writer(f)  # separator domyślny: przecinek
             for row, label in zip(rows, self.y):
                 writer.writerow(row + [label])
 
     def test(self, disc_path, orig_path):
-        """Moduł testujący"""
-
+        """Moduł testujący zgodność z oryginałem"""
         df_disc = pd.read_csv(disc_path, sep=',', header=None)
         df_orig = pd.read_csv(orig_path)
 
+        # 1. Sprawdzenie liczby wierszy
         assert df_disc.shape[0] == df_orig.shape[0], "Liczba wierszy niezgodna"
         print("✅ Liczba wierszy zgodna")
 
+        # 2. Sprawdzenie poprawności przynależności do przedziału
         for i in range(df_orig.shape[0]):
             for j in range(df_orig.shape[1] - 1):
                 val = df_orig.iloc[i, j]
                 interval = df_disc.iloc[i, j]
-                left, right = interval.strip('()[]').split(';')
+                parts = interval.strip('()[]').split(';')
+                if len(parts) != 2:
+                    raise ValueError(f"❌ Błędny przedział: {interval}")
+                left, right = parts
                 left = float(left) if left != '-inf' else float('-inf')
                 right = float(right) if right != 'inf' else float('inf')
                 assert left < val <= right, f"Obiekt {i}, kolumna {j}: {val} nie pasuje do {interval}"
         print("✅ Wszystkie wartości w przedziałach")
 
+        # 3. Zliczenie par niedeterministycznych
         intervals = df_disc.iloc[:, :-1].values.tolist()
         labels = df_disc.iloc[:, -1].values
         count = 0
@@ -161,6 +168,7 @@ class BottomUpGreedyDiscretizer:
                     count += 1
         print(f"Pary niedeterministyczne: {count}")
 
+        # 4. Liczba unikalnych cięć
         num_cuts = 0
         for j in range(df_disc.shape[1] - 1):
             num_cuts += len(set(df_disc.iloc[:, j])) - 1
