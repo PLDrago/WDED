@@ -53,28 +53,33 @@ Fragment pochodzi z pliku `main.py`, linia 17.
 
 ---
 
-### **2. Supervised Bottom-Up Discretizer (`BottomUpDiscretizer.py`)**
+### ** Analiza Wyników Dyskretyzacji**
 
-#### Główne Metody
-- **`fit(values, labels)`**
-  - Tworzy początkowe przedziały dla każdej wartości ciągłej.
-  - Iteracyjnie łączy sąsiednie przedziały, jeśli ich połączenie minimalizuje stratę separacji klas.
+#### Pary Niedeterministyczne
+Po przekształceniu danych można przeanalizować ich jakość, sprawdzając liczbę par niedeterministycznych (par przykładów z różnymi etykietami, które znajdują się w tych samych przedziałach).
 
-**Przykład wykorzystania w kodzie:**
+**Kod analizy:**
 ```python
-model = SupervisedBottomUpDiscretizer(max_bins=5)
-model.fit(values, labels)
+intervals = df_disc.iloc[:, :-1].values.tolist()
+labels = df_disc.iloc[:, -1].values
+count = 0
+for i in range(len(labels)):
+    for j in range(i + 1, len(labels)):
+        if labels[i] != labels[j] and intervals[i] == intervals[j]:
+            count += 1
+print(f"Pary niedeterministyczne: {count}")
 ```
-Fragment pochodzi z pliku `BottomUpDiscretizer.py`, linia 33.
 
-- **`transform(values)`**
-  - Przekształca dane wejściowe na wartości dyskretne, przypisując każdą wartość do odpowiedniego przedziału.
+#### Liczba Cięć
+Dodatkowo można obliczyć liczbę cięć dla każdego atrybutu, aby ocenić złożoność dyskretyzacji.
 
-**Przykład wykorzystania w kodzie:**
+**Kod analizy:**
 ```python
-bins = model.transform(values)
+num_cuts = 0
+for j in range(df_disc.shape[1] - 1):
+    num_cuts += len(set(df_disc.iloc[:, j])) - 1
+print(f"Liczba cięć: {num_cuts}")
 ```
-Fragment pochodzi z pliku `BottomUpDiscretizer.py`, linia 61.
 
 ---
 
@@ -122,3 +127,12 @@ x1_bin,x2_bin,Decyzja
 
 - Projekt zakłada, że dane wejściowe są w formacie CSV, gdzie kolumny `x1`, `x2` reprezentują atrybuty, a kolumna `Decyzja` to etykiety klas.
 - Dyskretyzacja odbywa się niezależnie dla każdego pliku danych.
+
+---
+
+## Autorzy
+
+- Krzysztof Majka
+- Norbert Zdziarski
+- Jakub Rembisz
+- Marcin Wąsacz
