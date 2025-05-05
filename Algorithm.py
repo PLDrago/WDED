@@ -4,19 +4,22 @@ import csv
 from collections import Counter
 from itertools import combinations
 import os
+import time
 
 class BottomUpGreedyDiscretizer:
     def __init__(self):
-        self.cuts = {0: [], 1: []}
-        self.selected_cuts = {0: [], 1: []}
+        self.cuts = {0: [], 1: []}         # Wszystkie możliwe cięcia
+        self.selected_cuts = {0: [], 1: []}  # Wybrane cięcia (po zachłannym wyborze)
 
     def read_data(self, filepath):
+        """Wczytuje dane z pliku CSV"""
         df = pd.read_csv(filepath)
-        self.X = df.iloc[:, :-1].values
-        self.y = df.iloc[:, -1].values
+        self.X = df.iloc[:, :-1].values  # cechy
+        self.y = df.iloc[:, -1].values   # decyzje
         return df
 
     def generate_all_possible_cuts(self):
+        """Generuje możliwe cięcia między punktami o różnych klasach"""
         for attr in [0, 1]:
             vals_labels = sorted(zip(self.X[:, attr], self.y))
             cuts = set()
@@ -29,6 +32,7 @@ class BottomUpGreedyDiscretizer:
             self.cuts[attr] = sorted(cuts)
 
     def get_partition_keys(self, X, selected_cuts):
+        """Zwraca klucze przedziałowe dla każdego obiektu"""
         result = []
         for row in X:
             key = []
@@ -45,6 +49,7 @@ class BottomUpGreedyDiscretizer:
         return result
 
     def count_separated_pairs(self, keys):
+        """Zlicza liczbę par obiektów o różnych klasach w różnych przedziałach"""
         count = 0
         for i, j in combinations(range(len(keys)), 2):
             if keys[i] != keys[j] and self.y[i] != self.y[j]:
@@ -52,6 +57,7 @@ class BottomUpGreedyDiscretizer:
         return count
 
     def fit(self):
+        """Główna funkcja: wybór najlepszych cięć metodą zachłanną"""
         self.generate_all_possible_cuts()
         current_cuts = {0: [], 1: []}
         current_keys = self.get_partition_keys(self.X, current_cuts)
@@ -89,24 +95,20 @@ class BottomUpGreedyDiscretizer:
         self.selected_cuts = current_cuts
 
     def weighted_purity(self, selected_cuts):
+        """Dodatkowe kryterium jakości – średnia ważona dominacja klasy w przedziałach"""
         keys = self.get_partition_keys(self.X, selected_cuts)
         group_map = {}
 
         for key, label in zip(keys, self.y):
-            if key not in group_map:
-                group_map[key] = []
-            group_map[key].append(label)
+            group_map.setdefault(key, []).append(label)
 
         total = len(self.y)
-        dominant_sum = 0
-        for group in group_map.values():
-            count = Counter(group)
-            dominant = count.most_common(1)[0][1]
-            dominant_sum += dominant
+        dominant_sum = sum(Counter(group).most_common(1)[0][1] for group in group_map.values())
 
         return dominant_sum / total if total > 0 else 0
 
     def transform(self):
+        """Zamienia wartości numeryczne na przedziały tekstowe"""
         result = []
         for row in self.X:
             new_row = []
@@ -124,8 +126,45 @@ class BottomUpGreedyDiscretizer:
         return result
 
     def save_transformed(self, filepath):
+        """Zapisuje dane z przedziałami do pliku"""
         rows = self.transform()
         with open(filepath, 'w', newline='') as f:
             writer = csv.writer(f, delimiter='\t')
             for row, label in zip(rows, self.y):
                 writer.writerow(row + [label])
+
+    def test_against_original(self, disc_path, orig_path):
+        """Moduł testujący zgodność pliku wynikowego z oryginałem"""
+
+        df_disc = pd.read_csv(disc_path, sep='\t', header=None)
+        df_orig = pd.read_csv(orig_path)
+
+        assert df_disc.shape[0] == df_orig.shape[0], "Liczba wierszy niezgodna"
+        print("✅ Liczba wierszy zgodna")
+
+        # 2. Przynależność do przedziałów
+        for i in range(df_orig.shape[0]):
+            for j in range(df_orig.shape[1] - 1):
+                val = df_orig.iloc[i, j]
+                interval = df_disc.iloc[i, j]
+                left, right = interval.strip('()[]').split(';')
+                left = float(left) if left != '-inf' else float('-inf')
+                right = float(right) if right != 'inf' else float('inf')
+                assert left < val <= right, f"Obiekt {i}, kolumna {j}: {val} nie pasuje do {interval}"
+        print("✅ Wszystkie wartości w przedziałach")
+
+        # 3. Pary niedeterministyczne
+        intervals = df_disc.iloc[:, :-1].values.tolist()
+        labels = df_disc.iloc[:, -1].values
+        count = 0
+        for i in range(len(labels)):
+            for j in range(i + 1, len(labels)):
+                if labels[i] != labels[j] and intervals[i] == intervals[j]:
+                    count += 1
+        print(f"Pary niedeterministyczne: {count}")
+
+        # 4. Liczba cięć
+        num_cuts = 0
+        for j in range(df_disc.shape[1] - 1):
+            num_cuts += len(set(df_disc.iloc[:, j])) - 1
+        print(f"Liczba cięć: {num_cuts}")
