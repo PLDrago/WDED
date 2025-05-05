@@ -24,27 +24,32 @@ Ten projekt implementuje algorytmy dyskretyzacji danych, które przekształcają
   - Wczytuje dane wejściowe z pliku CSV.
   - Dane są dzielone na macierz cech (`X`) i wektor etykiet (`y`).
 
-- **`generate_all_possible_cuts()`**
-  - Generuje wszystkie możliwe "cięcia" dla atrybutów.
-  - Cięcie jest umieszczane w miejscu, gdzie wartości ciągłe zmieniają klasę decyzyjną.
-
-- **`get_partition_keys(X, selected_cuts)`**
-  - Dzieli dane na przedziały na podstawie wybranych cięć.
-  - Każdy wiersz danych jest przypisywany do klucza odpowiadającego jego przedziałowi.
-
-- **`count_separated_pairs(keys)`**
-  - Oblicza liczbę par przykładów, które są odseparowane przez aktualne klucze oraz należą do różnych klas.
+**Przykład wykorzystania w kodzie:**
+```python
+model = BottomUpGreedyDiscretizer()
+model.read_data(data_path)
+```
+Fragment pochodzi z pliku `main.py`, linia 9.
 
 - **`fit()`**
   - Główna metoda algorytmu.
   - Iteracyjnie wybiera cięcia, które maksymalizują liczbę odseparowanych par pomiędzy różnymi klasami.
   - Wynikowe cięcia są zapisywane w `selected_cuts`.
 
-- **`transform()`**
-  - Przekształca dane wejściowe na wartości dyskretne, przypisując każdą wartość do odpowiedniego przedziału.
+**Przykład wykorzystania w kodzie:**
+```python
+model.fit()
+```
+Fragment pochodzi z pliku `main.py`, linia 10.
 
 - **`save_transformed(filepath)`**
   - Zapisuje przekształcone dane do pliku w formacie CSV.
+
+**Przykład wykorzystania w kodzie:**
+```python
+model.save_transformed(output_path)
+```
+Fragment pochodzi z pliku `main.py`, linia 17.
 
 ---
 
@@ -55,21 +60,21 @@ Ten projekt implementuje algorytmy dyskretyzacji danych, które przekształcają
   - Tworzy początkowe przedziały dla każdej wartości ciągłej.
   - Iteracyjnie łączy sąsiednie przedziały, jeśli ich połączenie minimalizuje stratę separacji klas.
 
-- **`_separation_score(intervals)`**
-  - Oblicza liczbę odseparowanych klas w przedziałach.
-  - Im wyższy wynik, tym lepsza separacja.
-
-- **`merge(other)` (dla klasy `Interval`)**
-  - Łączy dwa przedziały w jeden nowy przedział.
+**Przykład wykorzystania w kodzie:**
+```python
+model = SupervisedBottomUpDiscretizer(max_bins=5)
+model.fit(values, labels)
+```
+Fragment pochodzi z pliku `BottomUpDiscretizer.py`, linia 33.
 
 - **`transform(values)`**
   - Przekształca dane wejściowe na wartości dyskretne, przypisując każdą wartość do odpowiedniego przedziału.
 
-- **`fit_transform(values, labels)`**
-  - Przeprowadza zarówno proces budowy przedziałów, jak i dyskretyzacji danych.
-
-- **`count_separated_pairs(values, labels)`**
-  - Oblicza liczbę odseparowanych par danych w zależności od ich przynależności do różnych klas.
+**Przykład wykorzystania w kodzie:**
+```python
+bins = model.transform(values)
+```
+Fragment pochodzi z pliku `BottomUpDiscretizer.py`, linia 61.
 
 ---
 
