@@ -20,7 +20,7 @@ class BottomUpGreedyDiscretizer:
 
     def generate_all_possible_cuts(self):
         """Generuje możliwe cięcia między punktami o różnych klasach"""
-        for attr in [0, 1]:
+        for attr in range(self.X.shape[1]):
             vals_labels = sorted(zip(self.X[:, attr], self.y))
             cuts = set()
             for i in range(len(vals_labels) - 1):
@@ -36,7 +36,7 @@ class BottomUpGreedyDiscretizer:
         result = []
         for row in X:
             key = []
-            for attr in [0, 1]:
+            for attr in range(self.X.shape[1]):
                 cuts = selected_cuts[attr]
                 val = row[attr]
                 for i, cut in enumerate(cuts):
@@ -112,7 +112,7 @@ class BottomUpGreedyDiscretizer:
         result = []
         for row in self.X:
             new_row = []
-            for attr in [0, 1]:
+            for attr in range(self.X.shape[1]):
                 cuts = self.selected_cuts[attr]
                 val = row[attr]
                 for i, cut in enumerate(cuts):
@@ -142,7 +142,6 @@ class BottomUpGreedyDiscretizer:
         assert df_disc.shape[0] == df_orig.shape[0], "Liczba wierszy niezgodna"
         print("✅ Liczba wierszy zgodna")
 
-        # 2. Przynależność do przedziałów
         for i in range(df_orig.shape[0]):
             for j in range(df_orig.shape[1] - 1):
                 val = df_orig.iloc[i, j]
@@ -153,7 +152,6 @@ class BottomUpGreedyDiscretizer:
                 assert left < val <= right, f"Obiekt {i}, kolumna {j}: {val} nie pasuje do {interval}"
         print("✅ Wszystkie wartości w przedziałach")
 
-        # 3. Pary niedeterministyczne
         intervals = df_disc.iloc[:, :-1].values.tolist()
         labels = df_disc.iloc[:, -1].values
         count = 0
@@ -163,7 +161,6 @@ class BottomUpGreedyDiscretizer:
                     count += 1
         print(f"Pary niedeterministyczne: {count}")
 
-        # 4. Liczba cięć
         num_cuts = 0
         for j in range(df_disc.shape[1] - 1):
             num_cuts += len(set(df_disc.iloc[:, j])) - 1
