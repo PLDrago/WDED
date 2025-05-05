@@ -136,29 +136,26 @@ class BottomUpGreedyDiscretizer:
                 writer.writerow(row + [label])
 
     def test(self, disc_path, orig_path):
-        """Moduł testujący zgodność z oryginałem"""
+        """Moduł testujący"""
         df_disc = pd.read_csv(disc_path, sep=',', header=None)
         df_orig = pd.read_csv(orig_path)
 
-        # 1. Sprawdzenie liczby wierszy
         assert df_disc.shape[0] == df_orig.shape[0], "Liczba wierszy niezgodna"
-        print("✅ Liczba wierszy zgodna")
+        print("Liczba wierszy zgodna")
 
-        # 2. Sprawdzenie poprawności przynależności do przedziału
         for i in range(df_orig.shape[0]):
             for j in range(df_orig.shape[1] - 1):
                 val = df_orig.iloc[i, j]
                 interval = df_disc.iloc[i, j]
                 parts = interval.strip('()[]').split(';')
                 if len(parts) != 2:
-                    raise ValueError(f"❌ Błędny przedział: {interval}")
+                    raise ValueError(f" Błędny przedział: {interval}")
                 left, right = parts
                 left = float(left) if left != '-inf' else float('-inf')
                 right = float(right) if right != 'inf' else float('inf')
                 assert left < val <= right, f"Obiekt {i}, kolumna {j}: {val} nie pasuje do {interval}"
-        print("✅ Wszystkie wartości w przedziałach")
+        print("Wszystkie wartości w przedziałach")
 
-        # 3. Zliczenie par niedeterministycznych
         intervals = df_disc.iloc[:, :-1].values.tolist()
         labels = df_disc.iloc[:, -1].values
         count = 0
@@ -168,7 +165,6 @@ class BottomUpGreedyDiscretizer:
                     count += 1
         print(f"Pary niedeterministyczne: {count}")
 
-        # 4. Liczba unikalnych cięć
         num_cuts = 0
         for j in range(df_disc.shape[1] - 1):
             num_cuts += len(set(df_disc.iloc[:, j])) - 1

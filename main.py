@@ -4,7 +4,7 @@ from Algorithm import BottomUpGreedyDiscretizer
 
 def run_discretization(data_paths):
     for data_path in data_paths:
-        print(f"\n⏳ Przetwarzanie pliku: {data_path}")
+        print(f"\nPrzetwarzanie pliku: {data_path}")
         model = BottomUpGreedyDiscretizer()
         model.read_data(data_path)
         model.fit()
@@ -15,7 +15,7 @@ def run_discretization(data_paths):
             "DISC" + os.path.basename(data_path)
         )
         model.save_transformed(output_path)
-        print(f"✅ Zapisano: {output_path}")
+        print(f"Zapisano: {output_path}")
 
         model.test(output_path, data_path)
 
@@ -26,4 +26,4 @@ if __name__ == "__main__":
     run_discretization(data_files)
     end = time.time()
 
-    print(f"\n⏱️ Czas dyskretyzacji wszystkich plików: {end - start:.2f} sekund")
+    print(f"\nCzas dyskretyzacji wszystkich plików: {end - start:.2f} sekund")
