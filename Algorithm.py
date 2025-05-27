@@ -1,6 +1,7 @@
 import pandas as pd
+import numpy as np
 import csv
-from collections import defaultdict, Counter
+from collections import defaultdict
 from bisect import bisect_right
 
 class BottomUpGreedyDiscretizer:
@@ -9,9 +10,9 @@ class BottomUpGreedyDiscretizer:
         self.selected_cuts = {}
 
     def read_data(self, filepath):
-        df = pd.read_csv(filepath)
-        self.X = df.iloc[:, :-1].values
-        self.y = df.iloc[:, -1].values
+        df = pd.read_csv(filepath, header=None)
+        self.X = df.iloc[:, :-1].to_numpy()
+        self.y = df.iloc[:, -1].to_numpy()
         n_attrs = self.X.shape[1]
         self.cuts = {i: [] for i in range(n_attrs)}
         self.selected_cuts = {i: [] for i in range(n_attrs)}
@@ -32,69 +33,55 @@ class BottomUpGreedyDiscretizer:
                         last_cut = cut
             self.cuts[attr] = cuts
 
-    def get_partition_keys(self, X, selected_cuts):
-        result = []
-        for row in X:
+    def count_newly_separated(self, selected_cuts, new_cut, attr):
+        idx = bisect_right(selected_cuts[attr], new_cut)
+        left_cut = selected_cuts[attr][idx - 1] if idx != 0 else float('-inf')
+        right_cut = selected_cuts[attr][idx] if idx != len(selected_cuts[attr]) else float('+inf')
+
+        comp_arr = self.X[:, attr]
+        sel = (comp_arr > left_cut) & (comp_arr <= right_cut)
+        X = self.X[sel]
+        y = self.y[sel]
+        
+        bucket = defaultdict(lambda: defaultdict(lambda: np.zeros(2)))
+        for row, label in zip(X, y):
             key = []
-            for attr in range(X.shape[1]):
-                val = row[attr]
-                cuts = selected_cuts[attr]
+            for attr_i in range(X.shape[1]):
+                if attr_i == attr:
+                    continue
+
+                val = row[attr_i]
+                cuts = selected_cuts[attr_i]
                 idx = bisect_right(cuts, val)
                 key.append(idx)
-            result.append(tuple(key))
-        return result
-
-    def count_separated_pairs(self, keys):
-        bucket = defaultdict(lambda: defaultdict(int))
-        for key, label in zip(keys, self.y):
-            bucket[key][label] += 1
+            lr = 1 - int(row[attr] <= new_cut)
+            bucket[tuple(key)][label][lr] += 1
 
         partitions = list(bucket.values())
         count = 0
 
         for i in range(len(partitions)):
             c1 = partitions[i]
-            for j in range(i + 1, len(partitions)):
-                c2 = partitions[j]
-                for k1 in c1:
-                    for k2 in c2:
-                        if k1 != k2:
-                            count += c1[k1] * c2[k2]
+            for k1 in c1:
+                for k2 in c1:
+                    if k1 != k2:
+                        count += c1[k1][0] * c1[k2][1]
+
         return count
-
-    def weighted_purity(self, selected_cuts):
-        keys = self.get_partition_keys(self.X, selected_cuts)
-        bucket = defaultdict(Counter)
-        for key, label in zip(keys, self.y):
-            bucket[key][label] += 1
-
-        total = len(self.y)
-        pure = sum(max(counter.values()) for counter in bucket.values())
-        return pure / total if total else 0
 
     def fit(self):
         self.generate_all_possible_cuts()
         current_cuts = {k: [] for k in self.cuts}
-        current_keys = self.get_partition_keys(self.X, current_cuts)
-        current_score = self.count_separated_pairs(current_keys)
+        current_score = 0
 
         all_candidates = [(attr, cut) for attr in self.cuts for cut in self.cuts[attr]]
-        used = set()
 
         while True:
             best_gain = 0
             best_candidate = None
 
             for attr, cut in all_candidates:
-                if (attr, cut) in used:
-                    continue
-                temp_cuts = {k: v.copy() for k, v in current_cuts.items()}
-                temp_cuts[attr].append(cut)
-                temp_cuts[attr].sort()
-
-                temp_keys = self.get_partition_keys(self.X, temp_cuts)
-                score = self.count_separated_pairs(temp_keys)
-                gain = score - current_score
+                gain = self.count_newly_separated(current_cuts, cut, attr)
 
                 if gain > best_gain:
                     best_gain = gain
@@ -107,10 +94,9 @@ class BottomUpGreedyDiscretizer:
             current_cuts[attr].append(cut)
             current_cuts[attr].sort()
             current_score += best_gain
-            used.add((attr, cut))
+            all_candidates.remove(best_candidate)
 
-            purity = self.weighted_purity(current_cuts)
-            print(f"Dodano cięcie: x{attr+1} = {cut:.3f}, separacja: {current_score}, czystość: {purity:.4f}")
+            print(f"Dodano cięcie: x{attr+1} = {cut:.3f}, separacja: {current_score}")
 
         self.selected_cuts = current_cuts
 
